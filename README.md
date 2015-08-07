@@ -20,6 +20,7 @@ npm install --save-dev grunt-contrib-less
 npm install --save-dev grunt-contrib-watch 
 npm install --save-dev jit-grunt 
 npm install --save-dev reactify
+bower install
 
 ```
 
@@ -29,5 +30,3 @@ Run:
 grunt
 live-server (in another terminal window)
 ```
-
-`gulp watch` can be used to recompile on the fly
