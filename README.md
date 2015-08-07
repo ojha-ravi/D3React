@@ -13,6 +13,14 @@ Setup:
 npm install
 npm install -g live-server
 
+npm install -g grunt-cli 
+npm install --save-dev grunt 
+npm install --save-dev grunt-browserify 
+npm install --save-dev grunt-contrib-less 
+npm install --save-dev grunt-contrib-watch 
+npm install --save-dev jit-grunt 
+npm install --save-dev reactify
+
 ```
 
 Run:
