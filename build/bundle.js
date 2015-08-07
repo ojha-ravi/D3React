@@ -41676,6 +41676,8 @@ module.exports = warning;
 //     Histogram: Histogram,
 //     Mean: Mean
 // };
+// 
+//Rewritting again
 
 var React = require("./../bower_components/react/react.js"),
 	_ = require("./../bower_components/lodash/lodash.js"),

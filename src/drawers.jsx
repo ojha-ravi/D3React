@@ -207,6 +207,8 @@
 //     Histogram: Histogram,
 //     Mean: Mean
 // };
+// 
+//Rewritting again
 
 var React = require('react'),
 	_ = require('lodash'),
