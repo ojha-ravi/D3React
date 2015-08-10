@@ -41467,218 +41467,101 @@ module.exports = warning;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],4:[function(require,module,exports){
+var React = require("./../bower_components/react/react.js"),
+	_ = require("./../bower_components/lodash/lodash.js");
 
-// var React = require('react'),
-//     d3 = require('d3');
+var Controls = React.createClass({displayName: "Controls",
+	getInitialState: function() {
+		return {yearFilter: function() {
+			return true;
+		}}
+	},
+	componenetDidUpdate: function() {
+		this.props.updateDataFilter((function(filters) {
+											return function(d) {filters.yearFilter(d)};
+			})(this.state)
+		);
+	},
+	shouldComponentUpdate: function(nextProps, nextState) {
+		return !_.isEqual(this.state, nextState);
+	},
+	updateDataFilter: function(year, reset) {
+		var filter = function(d) {
+			return d.submit_date.getFullYear() === year;
+		}
 
-// var Histogram = React.createClass({
-//     propTypes: {
-//         bins: React.PropTypes.number.isRequired,
-//         width: React.PropTypes.number.isRequired,
-//         height: React.PropTypes.number.isRequired
-//     },
+		if(reset || !year) {
+			filter = function() {return true;};
+		}
 
-//     componentWillMount: function () {
-//         this.histogram = d3.layout.histogram();
-//         this.widthScale = d3.scale.linear();
-//         this.yScale = d3.scale.linear();
+		this.setState({yearFilter: filter});
+	},
+	render: function() {
+		var getYears = function (data) {
+			return _.keys(_.groupBy(data, function(d) {
+				return d.submit_date.getFullYear()
+			})).map(Number);
+		};
+		return React.createElement("div", null, 
+					React.createElement(ControlRow, {data: this.props.data, getToggleNames: getYears, updateDataFilter: this.updateDataFilter})
+				)
+	}
+});
 
-//         this.update_d3(this.props);
-//     },
+var ControlRow = React.createClass({displayName: "ControlRow",
+	getInitialState: function() {
+		var toggles = this.props.getToggleNames(this.props.data),
+						toggleValues = _.zipObject (toggles, toggles.map(function(){return false}));
+		return {toggleValues: toggleValues};
+	},
+	makePick: function(picked, newState) {
+		var toggleValues = this.state.toggleValues;
+		toggleValues = _.mapValues(toggleValues, function(value, key) {
+							return newState && key == picked;
+						});
+		this.props.updateDataFilter(picked, !newState)
+		this.setState({toggleValues: toggleValues});
+	},
+	render: function() {
+		return React.createElement("div", {className: "row"}, 
+					React.createElement("div", {className: "col-md-12"}, 
+						this.props.getToggleNames(this.props.data).map(function(name){
+							var key = "toggle-" + name;
+							var label = name;
+							return React.createElement(Toggle, {label: label, name: name, key: key, value: this.state.toggleValues[name], onClick: this.makePick})
+						}.bind(this))
+					)
+				)
+	}
+});
 
-//     componentWillReceiveProps: function (newProps) {
-//         this.update_d3(newProps);
-//     },
+var Toggle = React.createClass({displayName: "Toggle",
+	getInitialState: function() {
+		return {value: false};
+	},
+	componentWillReceiveProps: function(newProps) {
+		this.setState({value: newProps.value})
+	},
+	handleClick: function(event) {
+		var newState = !this.state.value;
+		this.setState({value: newState});
+		this.props.onClick(this.props.name, newState);
+	},
+	render: function() {
+		var className = "btn btn-defalut";
+		if(this.state.value) {
+			className += " btn-primary"
+		}
 
-//     update_d3: function (props) {
-//         this.histogram
-//             .bins(props.bins)
-//             .value(this.props.value);
+		return React.createElement("button", {className: className, onClick: this.handleClick}, 
+					this.props.label
+				)
+	}
+})
 
-//         var bars = this.histogram(props.data)
-//                        .reduce(this.mergeSmall, []),
-//             counts = bars.map(function (d) { return d.y; });
+module.exports = Controls;
 
-//         this.setState({bars: bars});
-
-//         this.widthScale
-//             .domain([d3.min(counts), d3.max(counts)])
-//             .range([9, props.width-props.axisMargin]);
-
-//         this.yScale
-//             .domain([0, d3.max(bars.map(function (d) { return d.x+d.dx; }))])
-//             .range([0, props.height-props.topMargin-props.bottomMargin]);
-//     },
-
-//     mergeSmall: function (mem, d) {
-//         //if (d.y/this.props.data.length > 0.01  || !mem.length) {
-//             mem.push(d);
-//         //}else{
-//         //    mem[mem.length-1].dx += d.dx;
-//         //    mem[mem.length-1].y += d.y;
-//         //}
-
-//         return mem;
-//     },
-
-//     makeBar: function (bar) {
-//         var percent = bar.y/this.props.data.length*100;
-
-//         var props = {percent: percent,
-//                      x: this.props.axisMargin,
-//                      y: this.yScale(bar.x),
-//                      width: this.widthScale(bar.y),
-//                      height: this.yScale(bar.dx),
-//                      key: "histogram-bar-"+bar.x+"-"+bar.y}
-
-//         return (
-//             <HistogramBar {...props} />
-//         );
-//     },
-
-//     render: function () {
-//         var translate = "translate(0, "+this.props.topMargin+")";
-
-//         return (
-//             <g className="histogram" transform={translate}>
-//                 <g className="bars">
-//                     {this.state.bars.map(this.makeBar)}
-//                     <Axis {...this.props} data={this.state.bars}  />
-//                 </g>
-//             </g>
-//         );
-//     }
-// });
-
-// var HistogramBar = React.createClass({
-//     render: function () {
-//         var translate = "translate(" + this.props.x + "," + this.props.y + ")",
-//             label = this.props.percent.toFixed(0)+'%';
-
-//         if (this.props.percent < 1) {
-//             label = this.props.percent.toFixed(2)+"%";
-//         }
-
-//         if (this.props.width < 20) {
-//             label = label.replace("%", "");
-//         }
-
-//         if (this.props.width < 10) {
-//             label = "";
-//         }
-
-//         return (
-//             <g transform={translate} className="bar">
-//                 <rect width={this.props.width}
-//                       height={this.props.height-2}
-//                       transform="translate(0, 1)">
-//                 </rect>
-//                 <text textAnchor="end"
-//                       x={this.props.width-5}
-//                       y={this.props.height/2+3}>
-//                     {label}
-//                 </text>
-//             </g>
-//         );
-//     }
-// });
-
-// var Axis = React.createClass({
-//     componentWillMount: function () {
-//         this.yScale = d3.scale.linear();
-//         this.axis = d3.svg.axis()
-//                       .scale(this.yScale)
-//                       .orient("left")
-//                       .tickFormat(function (d) {
-//                           return "$"+this.yScale.tickFormat()(d);
-//                       }.bind(this));
-
-//         this.update_d3(this.props);
-//     },
-
-//     componentWillReceiveProps: function (newProps) {
-//         this.update_d3(newProps);
-//     },
-
-//     update_d3: function (props) {
-//         this.yScale
-//             .domain([0,
-//                      d3.max(props.data.map(
-//                          function (d) { return d.x+d.dx; }))])
-//             .range([0, props.height-props.topMargin-props.bottomMargin]);
-
-//         this.axis
-//             .ticks(props.data.length)
-//             .tickValues(props.data
-//                              .map(function (d) { return d.x; })
-//                              .concat(props.data[props.data.length-1].x
-//                                     +props.data[props.data.length-1].dx));
-//     },
-
-//     componentDidUpdate: function () { this.renderAxis(); },
-//     componentDidMount: function () { this.renderAxis(); },
-
-//     renderAxis: function () {
-//         var node = this.getDOMNode();
-
-//         d3.select(node).call(this.axis);
-//     },
-
-//     render: function () {
-//         var translate = "translate("+(this.props.axisMargin-3)+", 0)";
-//         return (
-//             <g className="axis" transform={translate}>
-//             </g>
-//         );
-//     }
-// });
-
-// var Mean = React.createClass({
-//     componentWillMount: function () {
-//         this.yScale = d3.scale.linear();
-
-//         this.update_d3(this.props);
-//     },
-
-//     componentWillReceiveProps: function (newProps) {
-//         this.update_d3(newProps);
-//     },
-
-//     update_d3: function (props) {
-//         this.yScale
-//             .domain([0,
-//                      d3.max(props.data.map(this.props.value))])
-//             .range([0, props.height-props.topMargin-props.bottomMargin]);
-//     },
-
-//     render: function () {
-//         var mean = d3.mean(this.props.data, this.props.value),
-//             line = d3.svg.line()
-//             ([[0, 5],
-//               [this.props.width, 5]]);
-
-//         var translate = "translate(0, "+this.yScale(mean)+")",
-//             meanLabel = "Mean: $"+this.yScale.tickFormat()(mean);
-
-//         return (
-//             <g className="mean" transform={translate}>
-//                 <text x={this.props.width-5} y="0" textAnchor="end">
-//                     {meanLabel}
-//                 </text>
-//                 <path d={line}></path>
-//             </g>
-//         );
-//     }
-// });
-
-
-// module.exports = {
-//     Histogram: Histogram,
-//     Mean: Mean
-// };
-// 
-//Rewritting again
-
+},{"./../bower_components/lodash/lodash.js":2,"./../bower_components/react/react.js":3}],5:[function(require,module,exports){
 var React = require("./../bower_components/react/react.js"),
 	_ = require("./../bower_components/lodash/lodash.js"),
 	d3 = require("./../bower_components/d3/d3.js")
@@ -41810,415 +41693,12 @@ module.exports = {
 	Histogram: Histogram
 };
 
-},{"./../bower_components/d3/d3.js":1,"./../bower_components/lodash/lodash.js":2,"./../bower_components/react/react.js":3}],5:[function(require,module,exports){
-
-// var React = require('react'),
-//     _ = require('lodash'),
-//     d3 = require('d3'),
-//     drawers = require('./drawers.jsx'),
-//     Controls = require('./controls.jsx'),
-//     States = require('./states.js');
-
-// String.prototype.capitalize = function() {
-//     return this.charAt(0).toUpperCase() + this.slice(1);
-// }
-
-// String.prototype.decapitalize = function () {
-//     return this.charAt(0).toLowerCase() + this.slice(1);
-// }
-
-// var H1BGraph = React.createClass({
-//     cleanJobs: function (title) {
-//         title = title.replace(/[^a-z ]/gi, '');
-
-//         if (title.match(/consultant|specialist|expert|prof|advis|consult/)) {
-//             title = "consultant";
-//         }else if (title.match(/analyst|strateg|scien/)) {
-//             title = "analyst";
-//         }else if (title.match(/manager|associate|train|manag|direct|supervis|mgr|chief/)) {
-//             title = "manager";
-//         }else if (title.match(/architect/)) {
-//             title = "architect";
-//         }else if (title.match(/lead|coord/)) {
-//             title = "lead";
-//         }else if (title.match(/eng|enig|ening|eign/)) {
-//             title = "engineer";
-//         }else if (title.match(/program/)) {
-//             title = "programmer";
-//         }else if (title.match(/design/)) {
-//             title = "designer";
-//         }else if (title.match(/develop|dvelop|develp|devlp|devel|deelop|devlop|devleo|deveo/)) {
-//             title = "developer";
-//         }else if (title.match(/tester|qa|quality|assurance|test/)) {
-//             title = "tester";
-//         }else if (title.match(/admin|support|packag|integrat/)) {
-//             title = "administrator";
-//         }else{
-//             title = "other";
-//         }
-
-//         return title;
-//     },
-
-//     loadRawData: function () {
-//         var dateFormat = d3.time.format("%m/%d/%Y");
-//         d3.csv(this.props.url)
-//           .row(function (d) {
-//               if (!d['base salary']) {
-//                   return null;
-//               }
-
-//               return {employer: d.employer,
-//                       submit_date: dateFormat.parse(d['submit date']),
-//                       start_date: dateFormat.parse(d['start date']),
-//                       case_status: d['case status'],
-//                       job_title: d['job title'],
-//                       clean_job_title: this.cleanJobs(d['job title']),
-//                       base_salary: Number(d['base salary']),
-//                       salary_to: d['salary to'] ? Number(d['salary to']) : null,
-//                       city: d.city,
-//                       state: d.state};
-//           }.bind(this))
-//           .get(function (error, rows) {
-//               if (error) {
-//                   console.error(error);
-//                   console.error(error.stack);
-//               }else{
-//                   this.setState({rawData: rows});
-//               }
-//           }.bind(this));
-//     },
-
-//     updateDataFilter: function (filter) {
-//         this.setState({dataFilter: filter});
-//     },
-
-//     getInitialState: function () {
-//         return {rawData: [],
-//                 dataFilter: function () { return true; }};
-//     },
-
-//     componentDidMount: function () {
-//         this.loadRawData();
-//     },
-
-//     render: function () {
-//         if (!this.state.rawData.length) {
-//             return (
-//                 <h2>Loading data about 81,000 H1B visas in the software industry</h2>
-//             );
-//         }
-
-//         var params = {
-//             bins: 20,
-//             width: 500,
-//             height: 500,
-//             axisMargin: 83,
-//             topMargin: 10,
-//             bottomMargin: 5,
-//             value: function (d) { return d.base_salary; }
-//         },
-//             fullWidth = 700;
-
-//         var onlyGoodVisas = this.state.rawData.filter(function (d) {
-//             return d.case_status == "certified";
-//         }),
-//             filteredData = onlyGoodVisas.filter(this.state.dataFilter);
-
-//         return (
-//             <div>
-//                 <Title data={filteredData} />
-//                 <Description data={filteredData} allData={onlyGoodVisas} />
-//                 <div className="row">
-//                     <div className="col-md-12">
-//                         <svg width={fullWidth} height={params.height}>
-//                             <drawers.Histogram {...params} data={filteredData} />
-//                             <drawers.Mean {...params} data={filteredData} width={fullWidth} />
-//                         </svg>
-//                     </div>
-//                 </div>
-//                 <Controls data={onlyGoodVisas} updateDataFilter={this.updateDataFilter} />
-//             </div>
-//         );
-//     }
-// });
-
-// var MetaMixin = {
-//     getYears: function (data) {
-//         data || (data = this.props.data);
-
-//         return _.keys(
-//             _.groupBy(this.props.data,
-//                       function (d) { return d.submit_date.getFullYear(); })
-//         );
-//     },
-
-//     getStates: function (data) {
-//         data || (data = this.props.data);
-
-//         return _.keys(
-//             _.groupBy(this.props.data,
-//                       function (d) { return d.state; })
-//         );
-//     },
-
-//     getJobTitles: function (data) {
-//         data || (data = this.props.data);
-
-//         return _.keys(
-//             _.groupBy(this.props.data,
-//                       function (d) { return d.clean_job_title; })
-//         );
-//     },
-
-//     getFormatter: function (data) {
-//         data || (data = this.props.data);
-
-//         return d3.scale.linear()
-//                  .domain(d3.extent(this.props.data,
-//                                    function (d) { return d.base_salary; }))
-//                  .tickFormat();
-//     }
-// };
-
-// var Title = React.createClass({
-//     mixins: [MetaMixin],
-
-//     getYearsFragment: function () {
-//         var years = this.getYears(),
-//             title;
-
-
-//         if (years.length > 1) {
-//             title = "";
-//         }else{
-//             title = "in "+years[0];
-//         }
-
-//         return title;
-//     },
-
-//     getStateFragment: function () {
-//         var states = this.getStates(),
-//             title;
-
-
-//         if (states.length > 1) {
-//             title = "";
-//         }else{
-//             title = "in "+States[states[0].toUpperCase()];
-//         }
-
-//         return title;
-//     },
-
-//     getJobTitleFragment: function () {
-//         var jobTitles = this.getJobTitles(),
-//             title;
-
-//         if (jobTitles.length > 1) {
-//             title = "H1B workers in the software industry";
-//         }else{
-//             if (jobTitles[0] == "other") {
-//                 title = "Other H1B workers in the software industry";
-//             }else{
-//                 title = "Software "+jobTitles[0]+"s on an H1B";
-//             }
-//         }
-
-//         return title;
-//     },
-
-//     render: function () {
-//         var mean = d3.mean(this.props.data,
-//                            function (d) { return d.base_salary; }),
-//             format = this.getFormatter();
-
-//         var
-//             yearsFragment = this.getYearsFragment(),
-//             jobTitleFragment = this.getJobTitleFragment(),
-//             stateFragment = this.getStateFragment(),
-//             title;
-
-//         if (yearsFragment && stateFragment) {
-//             title = (
-//                 <h2>{stateFragment.capitalize()}, {jobTitleFragment.match(/^H1B/) ? jobTitleFragment : jobTitleFragment.decapitalize()} {yearsFragment.length ? "made" : "make"} ${format(mean)}/year {yearsFragment}</h2>
-//             );
-//         }else{
-//             title = (
-//                 <h2>{jobTitleFragment} {yearsFragment.length ? "made" : "make"} ${format(mean)}/year {stateFragment} {yearsFragment}</h2>
-//             );
-//         }
-
-//         return title;
-//     }
-// });
-
-// var Description = React.createClass({
-//     mixins: [MetaMixin],
-
-//     getAllDataByYear: function (year, data) {
-//         data || (data = this.props.allData);
-
-//         return data.filter(function (d) {
-//             return d.submit_date.getFullYear() == year;
-//         });
-//     },
-
-//     getAllDataByJobTitle: function (jobTitle, data) {
-//         data || (data = this.props.allData);
-
-//         return data.filter(function (d) {
-//             return d.clean_job_title == jobTitle;
-//         });
-//     },
-
-//     getAllDataByState: function (state, data) {
-//         data || (data = this.props.allData);
-
-//         return data.filter(function (d) {
-//             return d.state == state;
-//         });
-//     },
-
-//     getYearFragment: function () {
-//         var years = this.getYears(),
-//             fragment;
-
-//         if (years.length > 1) {
-//             fragment = "";
-//         }else{
-//             fragment = "In "+years[0];
-//         }
-
-//         return fragment;
-//     },
-
-//     getPreviousYearFragment: function () {
-//         var years = this.getYears().map(Number),
-//             fragment;
-
-//         if (years.length > 1) {
-//             fragment = "";
-//         }else if (years[0] == 2012) {
-//             fragment = "";
-//         }else{
-//             var year = years[0],
-//                 lastYear = this.getAllDataByYear(year-1);
-
-//             var states = this.getStates(),
-//                 jobTitles = this.getJobTitles();
-
-//             if (jobTitles.length == 1) {
-//                 lastYear = this.getAllDataByJobTitle(jobTitles[0], lastYear);
-//             }
-
-//             if (states.length == 1) {
-//                 lastYear = this.getAllDataByState(states[0], lastYear);
-//             }
-
-//             var percent = ((this.props.data.length-lastYear.length)/this.props.data.length*100);
-
-//             if (this.props.data.length/lastYear.length > 2) {
-//                 fragment = ", "+(this.props.data.length/lastYear.length).toFixed()+" times more than the year before";
-//             }else{
-//                 var percent = ((1-lastYear.length/this.props.data.length)*100).toFixed();
-
-//                 fragment = ", "+Math.abs(percent)+"% "+(percent > 0 ? "more" : "less")+" than the year before";
-//             }
-//         }
-
-//         return fragment;
-//     },
-
-//     getJobTitleFragment: function () {
-//         var jobTitles = this.getJobTitles(),
-//             fragment;
-
-//         if (jobTitles.length > 1) {
-//             fragment = "foreign nationals";
-//         }else{
-//             if (jobTitles[0] == "other") {
-//                 fragment = "foreign nationals";
-//             }else{
-//                 fragment = "foreign software "+jobTitles[0]+"s";
-//             }
-//         }
-
-//         return fragment;
-//     },
-
-//     getStateFragment: function () {
-//         var states = this.getStates(),
-//             fragment;
-
-//         if (states.length > 1) {
-//             fragment = "US";
-//         }else{
-//             fragment = States[states[0].toUpperCase()];
-//         }
-
-//         return fragment;
-//     },
-
-//     getCityFragment: function () {
-//         var byCity = _.groupBy(this.props.data, "city"),
-
-//             ordered = _.sortBy(_.keys(byCity)
-//                                 .map(function (city) {
-//                                     return byCity[city];
-//                                 })
-//                                 .filter(function (d) {
-//                                     return d.length/this.props.data.length > 0.01;
-//                                 }.bind(this)),
-//                                function (d) {
-//                                    return d3.mean(_.pluck(d, 'base_salary'));
-//                                }),
-//             best = ordered[ordered.length-1],
-//             mean = d3.mean(_.pluck(best, 'base_salary'));
-
-//         var city = best[0].city
-//                           .split(" ")
-//                           .map(function (w) { return w.capitalize() })
-//                           .join(" ");
-
-//         var jobFragment = this.getJobTitleFragment()
-//                               .replace("foreign nationals", "")
-//                               .replace("foreign", "");
-
-//         return (
-//             <span>
-//                 The best city {jobFragment.length ? "for "+jobFragment : "to be in"} {this.getYearFragment().length ? "was" : "is"} {city} with an average salary of ${this.getFormatter()(mean)}.
-//             </span>
-//         );
-//     },
-
-//     render: function () {
-//         var formatter = this.getFormatter(),
-//             mean = d3.mean(this.props.data,
-//                            function (d) { return d.base_salary; }),
-//             deviation = d3.deviation(this.props.data,
-//                                      function (d) { return d.base_salary; });
-
-//         var yearFragment = this.getYearFragment();
-
-//         return (
-//             <p className="lead">{yearFragment.length ? yearFragment : "Since 2012"} the {this.getStateFragment()} software industry {yearFragment.length ? "gave" : "has given"} jobs to {formatter(this.props.data.length)} {this.getJobTitleFragment()}{this.getPreviousYearFragment()}. Most of them made between ${formatter(mean-deviation)} and ${formatter(mean+deviation)} per year. {this.getCityFragment()}</p>
-//         );
-//     }
-// });
-
-
-// React.render(
-//     <H1BGraph url="data/h1bs.csv" />,
-//     document.querySelectorAll('.h1bgraph')[0]
-// );
-
-
+},{"./../bower_components/d3/d3.js":1,"./../bower_components/lodash/lodash.js":2,"./../bower_components/react/react.js":3}],6:[function(require,module,exports){
 var React = require("./../bower_components/react/react.js"),
 	_ = require("./../bower_components/lodash/lodash.js"),
 	d3 = require("./../bower_components/d3/d3.js"),
-	drawers = require('./drawers.jsx');
+	drawers = require('./drawers.jsx'),
+	Controls = require('./controls.jsx');
 
 
 var H1BGraph = React.createClass({displayName: "H1BGraph",
@@ -42273,13 +41753,16 @@ var H1BGraph = React.createClass({displayName: "H1BGraph",
 			},
 			fullWidth = 700;
 
-		return (React.createElement("div", {className: "row"}, 
-					React.createElement("div", {className: "col-md-12"}, 
-						React.createElement("svg", {width: fullWidth, height: params.height}, 
-							React.createElement(drawers.Histogram, React.__spread({},  params, {data: this.state.rawData}))
+		return (React.createElement("div", null, 
+		        	React.createElement("div", {className: "row"}, 
+						React.createElement("div", {className: "col-md-12"}, 
+							React.createElement("svg", {width: fullWidth, height: params.height}, 
+								React.createElement(drawers.Histogram, React.__spread({},  params, {data: this.state.rawData}))
+							)
 						)
-					)
-				) )
+					), 
+					React.createElement(Controls, {data: this.state.rawData, updateDataFilter: this.updateDataFilter})
+				))
 
 	}
 })
@@ -42289,4 +41772,4 @@ React.render(
 	document.querySelectorAll('.h1bgraph')[0]
 );
 
-},{"./../bower_components/d3/d3.js":1,"./../bower_components/lodash/lodash.js":2,"./../bower_components/react/react.js":3,"./drawers.jsx":4}]},{},[5]);
+},{"./../bower_components/d3/d3.js":1,"./../bower_components/lodash/lodash.js":2,"./../bower_components/react/react.js":3,"./controls.jsx":4,"./drawers.jsx":5}]},{},[6]);
