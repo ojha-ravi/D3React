@@ -41703,7 +41703,11 @@ var React = require("./../bower_components/react/react.js"),
 
 var H1BGraph = React.createClass({displayName: "H1BGraph",
 	getInitialState: function() {
-		return {rawData: []};
+		return {rawData: [],
+				dataFilter: function() {return true}};
+	},
+	updateDataFilter: function(filter) {
+		this.setState({dataFilter: filter})
 	},
 	componentWillMount: function() {
 		this.loadRawData();
@@ -41753,11 +41757,12 @@ var H1BGraph = React.createClass({displayName: "H1BGraph",
 			},
 			fullWidth = 700;
 
+		var filteredData = this.state.rawData.filter(this.state.dataFilter);
 		return (React.createElement("div", null, 
 		        	React.createElement("div", {className: "row"}, 
 						React.createElement("div", {className: "col-md-12"}, 
 							React.createElement("svg", {width: fullWidth, height: params.height}, 
-								React.createElement(drawers.Histogram, React.__spread({},  params, {data: this.state.rawData}))
+								React.createElement(drawers.Histogram, React.__spread({},  params, {data: filteredData}))
 							)
 						)
 					), 

@@ -7,7 +7,11 @@ var React = require('react'),
 
 var H1BGraph = React.createClass({
 	getInitialState: function() {
-		return {rawData: []};
+		return {rawData: [],
+				dataFilter: function() {return true}};
+	},
+	updateDataFilter: function(filter) {
+		this.setState({dataFilter: filter})
 	},
 	componentWillMount: function() {
 		this.loadRawData();
@@ -57,11 +61,12 @@ var H1BGraph = React.createClass({
 			},
 			fullWidth = 700;
 
+		var filteredData = this.state.rawData.filter(this.state.dataFilter);
 		return (<div>
 		        	<div className="row">
 						<div className="col-md-12">
 							<svg width={fullWidth} height={params.height}>
-								<drawers.Histogram {...params} data={this.state.rawData}/>
+								<drawers.Histogram {...params} data={filteredData}/>
 							</svg>
 						</div>
 					</div>
